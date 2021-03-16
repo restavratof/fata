@@ -1,11 +1,59 @@
-class City(object):
-    def __init__(self, name, state, country, capital=False, population=0, regions=[]):
+from werkzeug.security import generate_password_hash, check_password_hash
+from flask_login import UserMixin
+from app import login
+
+
+class User(object):
+    def __init__(self, phone, name, email):
+        self.phone = phone
         self.name = name
-        self.state = state
-        self.country = country
-        self.capital = capital
-        self.population = population
-        self.regions = regions
+        self.email = email
+        self.psw_hash = None
+
+    def set_password(self, password):
+        self.psw_hash = generate_password_hash(password)
+
+    def check_password(self, password):
+        return check_password_hash(self.psw_hash, password)
+
+    @login.user_loader
+    def load_user(phone):
+        return User.query.get(phone)
+
+    @staticmethod
+    def from_dict(source):
+        city = User(source[u'phone'], source[u'name'], source[u'email'], source[u'psw_hash'])
+        return city
+
+    def to_dict(self):
+        dest = {
+            u'phone': self.phone,
+            u'name': self.name,
+            u'email': self.email,
+            u'psw_hash': self.psw_hash
+        }
+        return dest
+
+    def __repr__(self):
+        return(
+            f'User(\
+                phone={self.phone}, \
+                name={self.name},\
+                email={self.email},\
+                psw_hash={self.psw_hash}\
+            )'
+        )
+
+# users_ref = db.collection(u'users')
+# users_ref.document(u'+375291234567').set(
+#     User(u'Vasya').to_dict())
+
+
+class Post(object):
+    def __init__(self, user_id, body, timestamp):
+        self.user_id = user_id
+        self.body = body
+        self.timestamp = timestamp
 
     @staticmethod
     def from_dict(source):
@@ -18,28 +66,9 @@ class City(object):
 
     def __repr__(self):
         return(
-            f'City(\
-                name={self.name}, \
-                country={self.country}, \
-                population={self.population}, \
-                capital={self.capital}, \
-                regions={self.regions}\
+            f'User(\
+                user_id={self.user_id}, \
+                body={self.body},\
+                timestamp={self.timestamp}\
             )'
         )
-
-cities_ref = db.collection(u'cities')
-cities_ref.document(u'BJ').set(
-    City(u'Beijing', None, u'China', True, 21500000, [u'hebei']).to_dict())
-cities_ref.document(u'SF').set(
-    City(u'San Francisco', u'CA', u'USA', False, 860000,
-         [u'west_coast', u'norcal']).to_dict())
-cities_ref.document(u'LA').set(
-    City(u'Los Angeles', u'CA', u'USA', False, 3900000,
-         [u'west_coast', u'socal']).to_dict())
-cities_ref.document(u'DC').set(
-    City(u'Washington D.C.', None, u'USA', True, 680000,
-         [u'east_coast']).to_dict())
-cities_ref.document(u'TOK').set(
-    City(u'Tokyo', None, u'Japan', True, 9000000,
-         [u'kanto', u'honshu']).to_dict())
-
