@@ -3,5 +3,13 @@ import os
 
 class Config(object):
     SECRET_KEY = os.environ.get('SECRET_KEY') or 'you-will-never-guess'
-    GCP_CREDENTIALS = os.environ.get('GOOGLE_APPLICATION_CREDENTIALS') or \
-                      "/home/dfashch/cfg/gcp/fa-ta-307713-fcea29ce54c7.json"
+
+    POSTS_PER_PAGE = 3
+
+    # Mail config
+    MAIL_SERVER = os.environ.get('MAIL_SERVER')
+    MAIL_PORT = int(os.environ.get('MAIL_PORT') or 25)
+    MAIL_USE_TLS = os.environ.get('MAIL_USE_TLS') is not None
+    MAIL_USERNAME = os.environ.get('MAIL_USERNAME')
+    MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD')
+    ADMINS = ['d.faschenko@gmail.com']
