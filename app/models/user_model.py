@@ -21,13 +21,6 @@ class User(UserMixin, object):
     def check_password(self, password):
         return check_password_hash(self.psw_hash, password)
 
-    @login.user_loader
-    def load_user(id):
-        user_ref = db.collection(u'users').document(id).get().to_dict()
-        if user_ref is not None:
-            return User.from_dict(user_ref)
-        return user_ref
-
     @staticmethod
     def from_dict(source):
         logging.debug(f"IN: {source}")
@@ -71,3 +64,10 @@ class User(UserMixin, object):
         digest = md5(self.email.lower().encode('utf-8')).hexdigest()
         return f'https://www.gravatar.com/avatar/{digest}?d=identicon&s={size}'
 
+
+@login.user_loader
+def load_user(id):
+    user_ref = db.collection(u'users').document(id).get().to_dict()
+    if user_ref is not None:
+        return User.from_dict(user_ref)
+    return user_ref

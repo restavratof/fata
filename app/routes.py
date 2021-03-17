@@ -47,8 +47,11 @@ def login():
     if form.validate_on_submit():
         # Get user document from collection
         user_dict = db.collection(u'users').document(form.email.data).get().to_dict()
-        logging.debug(f"user_dict={user_dict}")
-        user = User.from_dict(user_dict)
+        if user_dict is not None:
+            logging.debug(f"user_dict={user_dict}")
+            user = User.from_dict(user_dict)
+        else:
+            user = user_dict
         logging.debug(f"user={user}")
 
         if user is None or not user.check_password(form.password.data):
@@ -142,30 +145,31 @@ def edit_profile():
 @app.route('/explore')
 @login_required
 def explore():
-    doc = request.args.get('doc', None, type=dict)
-    logging.debug(f'IN: {doc}')
-    if doc is None:
+    time = request.args.get('time', None, type=str)
+    logging.info(f"IN: {time} ({app.config['POSTS_PER_PAGE']})")
+    if time is None:
         posts_ref = db.collection(u'posts').order_by(u'timestamp', direction=firestore.Query.DESCENDING)\
             .limit(app.config['POSTS_PER_PAGE']).stream()
     else:
         posts_ref = db.collection(u'posts').order_by(u'timestamp', direction=firestore.Query.DESCENDING) \
-            .start_at(doc).limit(app.config['POSTS_PER_PAGE']).stream()
+            .start_after({u'timestamp': time}).limit(app.config['POSTS_PER_PAGE']).stream()
 
-    next_doc = list(posts_ref)[-1]
-    prev_doc = list(posts_ref)[0]
-    logging.debug(f'next_doc={next_doc.to_dict()}')
-    logging.debug(f'prev_doc={prev_doc.to_dict()}')
+    # logging.debug(f'LIST: {[x.to_dict() for x in posts_ref]}')
 
     posts = list()
     for post_ref in posts_ref:
-        logging.debug(f'post_ref={post_ref.to_dict()}')
+        logging.info(f'post_ref={post_ref.to_dict()}')
         posts.append(Post.from_dict(post_ref.to_dict()))
 
-    # posts = Post.query.order_by(Post.timestamp.desc()).paginate(page, app.config['POSTS_PER_PAGE'], False)
-    next_url = url_for('explore', doc=next_doc.to_dict()) # if posts_ref.has_next else None
-    prev_url = url_for('explore', doc=prev_doc.to_dict()) # if posts_ref.has_prev else None
+    logging.info(f'posts={posts}')
+    last_time = posts[-1].to_dict()[u'timestamp']
+    logging.info(f'last_time={last_time}')
 
-    return render_template("index.html", title='Explore', posts=posts.items, next_url=next_url, prev_url=prev_url)
+    # posts = Post.query.order_by(Post.timestamp.desc()).paginate(page, app.config['POSTS_PER_PAGE'], False)
+    next_url = url_for('explore', time=last_time) # if posts_ref.has_next else None
+    # prev_url = url_for('explore', doc=prev_doc.to_dict()) # if posts_ref.has_prev else None
+
+    return render_template("index.html", title='Explore', posts=posts, next_url=next_url, prev_url=None)
 
 
     # posts_ref = db.collection(u'posts').order_by(u'timestamp', direction=firestore.Query.DESCENDING).stream()
