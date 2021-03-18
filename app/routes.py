@@ -10,9 +10,11 @@ from app.forms import LoginForm
 from app.forms import RegistrationForm
 from app.forms import EditProfileForm
 from app.forms import PostForm
+from app.forms import ResetPasswordRequestForm
+from app.forms import ResetPasswordForm
 from app.models.user_model import User
 from app.models.post_model import Post
-
+from app.email import send_password_reset_email
 
 import logging
 from datetime import datetime
@@ -145,29 +147,42 @@ def edit_profile():
 @app.route('/explore')
 @login_required
 def explore():
-    time = request.args.get('time', None, type=str)
-    logging.info(f"IN: {time} ({app.config['POSTS_PER_PAGE']})")
-    if time is None:
+    logging.info('-'*100)
+    limit_num = app.config['POSTS_PER_PAGE']
+    doc = request.args.get('doc', None, type=str)
+    logging.info(f"IN: {doc} ({limit_num})")
+
+    if doc is None:
+        logging.info(f' *** DEFAULT ***')
         posts_ref = db.collection(u'posts').order_by(u'timestamp', direction=firestore.Query.DESCENDING)\
-            .limit(app.config['POSTS_PER_PAGE']).stream()
+            .limit(limit_num).stream()
     else:
+        logging.info(f' *** PAGINATED ***')
+
+        # date_time_obj = datetime.strptime(time, '%Y-%m-%d %H:%M:%S.%f%z')
+        # logging.info(f"date_time_obj: {date_time_obj}")
+        # posts_ref = db.collection(u'posts').order_by(u'timestamp', direction=firestore.Query.DESCENDING) \
+        #     .start_after({u'timestamp': date_time_obj}).limit(limit_num).stream()
+        doc_ref = db.collection(u'posts').document(doc).get()
         posts_ref = db.collection(u'posts').order_by(u'timestamp', direction=firestore.Query.DESCENDING) \
-            .start_after({u'timestamp': time}).limit(app.config['POSTS_PER_PAGE']).stream()
+            .start_after(doc_ref).limit(limit_num).stream()
 
     # logging.debug(f'LIST: {[x.to_dict() for x in posts_ref]}')
 
     posts = list()
+    last_doc = None
     for post_ref in posts_ref:
         logging.info(f'post_ref={post_ref.to_dict()}')
         posts.append(Post.from_dict(post_ref.to_dict()))
+        last_doc = post_ref.id
 
     logging.info(f'posts={posts}')
-    last_time = posts[-1].to_dict()[u'timestamp']
-    logging.info(f'last_time={last_time}')
+    # last_doc = posts[-1].id
+    # logging.info(f'last_doc={last_doc}')
 
     # posts = Post.query.order_by(Post.timestamp.desc()).paginate(page, app.config['POSTS_PER_PAGE'], False)
-    next_url = url_for('explore', time=last_time) # if posts_ref.has_next else None
-    # prev_url = url_for('explore', doc=prev_doc.to_dict()) # if posts_ref.has_prev else None
+    next_url = url_for('explore', doc=last_doc) # if posts_ref.has_next else None
+    # prev_url = url_for('explore', doc=prev_doc) # if posts_ref.has_prev else None
 
     return render_template("index.html", title='Explore', posts=posts, next_url=next_url, prev_url=None)
 
@@ -175,9 +190,47 @@ def explore():
     # posts_ref = db.collection(u'posts').order_by(u'timestamp', direction=firestore.Query.DESCENDING).stream()
     # posts = list()
     # for p_ref in posts_ref:
-    #     logging.debug(f'post_ref={p_ref.to_dict()}')
+    #     logging.info(f'post_ref={p_ref.to_dict()}')
     #     posts.append(Post.from_dict(p_ref.to_dict()))
     # return render_template('index.html', title='Explore', posts=posts)
+
+
+
+@app.route('/reset_password_request', methods=['GET', 'POST'])
+def reset_password_request():
+    if current_user.is_authenticated:
+        return redirect(url_for('index'))
+    form = ResetPasswordRequestForm()
+    if form.validate_on_submit():
+        logging.info(f"email={form.email.data}")
+        user_dict = db.collection(u'users').document(form.email.data).get().to_dict()
+        logging.info(f"user_dict={user_dict}")
+        if user_dict:
+            logging.info(f'Sending email...')
+            user = User.from_dict(user_dict)
+            send_password_reset_email(user)
+        flash('If user with such email was registered. '
+              'Application will send the instructions to reset your password to the email.')
+        return redirect(url_for('login'))
+    return render_template('reset_password_request.html',
+                           title='Reset Password', form=form)
+
+
+@app.route('/reset_password/<token>', methods=['GET', 'POST'])
+def reset_password(token):
+    if current_user.is_authenticated:
+        return redirect(url_for('index'))
+    user = User.verify_reset_password_token(token)
+    if not user:
+        return redirect(url_for('index'))
+    form = ResetPasswordForm()
+    if form.validate_on_submit():
+        user.set_password(form.password.data)
+        db.collection(u'users').document(user.email).set(user.to_dict())
+        flash('Your password has been reset.')
+        return redirect(url_for('login'))
+    return render_template('reset_password.html', form=form)
+
 
 
 
