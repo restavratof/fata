@@ -6,6 +6,11 @@ class Config(object):
 
     POSTS_PER_PAGE = 3
 
+    LANGUAGES = {
+        'en': 'English',
+        'ru': 'Russian'
+    }
+
     # Mail config
     MAIL_SERVER = os.environ.get('MAIL_SERVER')
     MAIL_PORT = int(os.environ.get('MAIL_PORT') or 25)
