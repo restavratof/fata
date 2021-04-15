@@ -1,7 +1,7 @@
 {% extends 'bootstrap/base.html' %}
 
 {% block title %}
-    {% if title %}{{ title }} - Microblog{% else %}{{ _('Welcome to Microblog') }}{% endif %}
+    {% if title %}{{ title }} - FATA{% else %}{{ _('Welcome to FATA') }}{% endif %}
 {% endblock %}
 
 {% block navbar %}
@@ -54,11 +54,10 @@
     {{ moment.include_moment() }}
     {{ moment.lang(g.locale) }}
     <script>
-        function translate(sourceElem, destElem, sourceLang, destLang) {
+        function translate(sourceElem, destElem, destLang) {
             $(destElem).html('<img src="{{ url_for('static', filename='loading.gif') }}">');
             $.post('/translate', {
                 text: $(sourceElem).text(),
-                source_language: sourceLang,
                 dest_language: destLang
             }).done(function(response) {
                 $(destElem).text(response['text'])

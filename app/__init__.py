@@ -4,6 +4,7 @@ from flask import current_app
 from flask_login import LoginManager
 from flask_mail import Mail
 from google.cloud import firestore
+from google.cloud import translate_v2 as translate
 import logging
 import sys, os
 from logging.handlers import SMTPHandler, RotatingFileHandler
@@ -22,6 +23,7 @@ moment = Moment()
 babel = Babel()
 # db = firestore.Client.from_service_account_json(Config.GCP_CREDENTIALS)
 db = firestore.Client()
+translate_client = translate.Client()
 
 
 def create_app(config_class=Config):
@@ -65,7 +67,7 @@ def create_app(config_class=Config):
                 toaddrs=app.config['ADMINS'], subject='Microblog Failure',
                 credentials=auth, secure=secure)
             mail_handler.setLevel(logging.ERROR)
-            app.logger.addHandler(mail_handler)
+            # app.logger.addHandler(mail_handler)
 
         if not os.path.exists('logs'):
             os.mkdir('logs')

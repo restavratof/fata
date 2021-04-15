@@ -5,13 +5,14 @@ from flask_login import current_user, login_required
 from flask_babel import _, get_locale
 from guess_language import guess_language
 from app import db
+from app import translate_client
 from app.main.forms import EditProfileForm, EmptyForm, PostForm
 from app.models.user_model import User
 from app.models.post_model import Post
-from app.translate import translate
 from app.main import bp
 import logging
 from google.cloud import firestore
+import six
 
 
 @bp.before_app_request
@@ -149,6 +150,14 @@ def edit_profile():
 @bp.route('/translate', methods=['POST'])
 @login_required
 def translate_text():
-    return jsonify({'text': translate(request.form['text'],
-                                      request.form['source_language'],
-                                      request.form['dest_language'])})
+    text = request.form['text']
+    target= request.form['dest_language']
+    if isinstance(text, six.binary_type):
+        text = text.decode("utf-8")
+
+    # Text can also be a sequence of strings, in which case this method
+    # will return a sequence of results for each text.
+    result = translate_client.translate(text, target_language=target)
+    logging.debug(f'result: {result}')
+
+    return jsonify({'text': result["translatedText"] })

@@ -132,3 +132,6 @@ dmypy.json
 # Project specific
 translations/
 logs/
+messages.pot
+messages.po
+messages.mo

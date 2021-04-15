@@ -1,21 +1,19 @@
-import json
-import requests
-from flask import current_app
-from flask_babel import _
-
-
-def translate(text, source_language, dest_language):
-    if 'MS_TRANSLATOR_KEY' not in current_app.config or \
-            not current_app.config['MS_TRANSLATOR_KEY']:
-        return _('Error: the translation service is not configured.')
-    auth = {
-        'Ocp-Apim-Subscription-Key': current_app.config['MS_TRANSLATOR_KEY'],
-        'Ocp-Apim-Subscription-Region': 'westus2'}
-    r = requests.post(
-        'https://api.cognitive.microsofttranslator.com'
-        '/translate?api-version=3.0&from={}&to={}'.format(
-            source_language, dest_language), headers=auth, json=[
-                {'Text': text}])
-    if r.status_code != 200:
-        return _('Error: the translation service failed.')
-    return r.json()[0]['translations'][0]['text']
+# import json
+# import requests
+# from app import translate_client
+# from flask_babel import _
+# import logging
+# import six
+#
+#
+# def translate(text, dest_language):
+#
+#     if isinstance(text, six.binary_type):
+#         text = text.decode("utf-8")
+#
+#     # Text can also be a sequence of strings, in which case this method
+#     # will return a sequence of results for each text.
+#     result = translate_client.translate(text, target_language=dest_language)
+#     logging.debug(f'result: {result}')
+#
+#     return result["translatedText"]
