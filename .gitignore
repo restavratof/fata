@@ -135,3 +135,5 @@ logs/
 messages.pot
 messages.po
 messages.mo
+
+.idea/
